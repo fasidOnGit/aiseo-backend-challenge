@@ -21,11 +21,4 @@ export function initializeUserCache(): void {
   userService.initializeCache();
 }
 
-export function shutdownUserCache(): void {
-  if (userServiceInstance) {
-    userServiceInstance.stopCleanup();
-    userServiceInstance = null;
-  }
-}
-
 export type { UserService } from './user-service';

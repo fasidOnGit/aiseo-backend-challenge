@@ -5,11 +5,7 @@ export type { User, CreateUserRequest, UserCache } from './types';
 export { UserService } from './user-service';
 
 // Singleton management
-export {
-  getUserService,
-  initializeUserCache,
-  shutdownUserCache,
-} from './user-cache-singleton';
+export { getUserService, initializeUserCache } from './user-cache-singleton';
 
 // Routes
 export { default as userRoutes } from './user-routes';

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { UserService } from './user-service';
 import { CreateUserRequest } from './types';
+import { UserNotFoundError } from './errors';
 
 describe('UserService', () => {
   let userService: UserService;
@@ -17,7 +18,7 @@ describe('UserService', () => {
     await userService.initializeCache();
 
     expect(userService.getCacheSize()).toBe(3);
-    expect(userService.getUserById(1)).resolves.toEqual({
+    await expect(userService.getUserById(1)).resolves.toEqual({
       id: 1,
       name: 'John Doe',
       email: 'john@example.com',
@@ -47,9 +48,13 @@ describe('UserService', () => {
     expect(userService.getCacheSize()).toBe(1);
   });
 
-  it('should return undefined for non-existent user', async () => {
-    const user = await userService.getUserById(999);
-    expect(user).toBeUndefined();
+  it('should throw UserNotFoundError for non-existent user', async () => {
+    await expect(userService.getUserById(999)).rejects.toThrow(
+      UserNotFoundError
+    );
+    await expect(userService.getUserById(999)).rejects.toThrow(
+      'User with ID 999 not found'
+    );
   });
 
   it('should create new user', async () => {

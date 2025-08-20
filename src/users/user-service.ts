@@ -2,10 +2,14 @@ import { User, CreateUserRequest } from './types';
 import { getMockUsers, getMockUserById } from './mock-data';
 import { createMetricsLRUCache } from '../cache';
 import { BackgroundCleanupService } from '../cache';
+import { UserNotFoundError } from './errors';
+import PQueue from 'p-queue';
+import { preventConcurrentRequests } from './concurrent-request-decorator';
 
 export class UserService {
   private userCache: ReturnType<typeof createMetricsLRUCache<User>>;
   private cleanupService: BackgroundCleanupService;
+  private databaseQueue: PQueue;
   private nextId = 4;
 
   constructor() {
@@ -13,14 +17,16 @@ export class UserService {
       ttl: 60 * 1000, // 60 seconds
     });
 
+    this.databaseQueue = new PQueue();
+
     this.cleanupService = new BackgroundCleanupService(this.userCache, {
       intervalMs: 2000,
-      onCleanup: (cleanedCount, currentSize) => {
-        console.log(
-          `🧹 User cache cleanup: removed ${cleanedCount} expired entries. Current size: ${currentSize}`
-        );
-      },
-      onError: error => {
+      // onCleanup: (cleanedCount, currentSize) => {
+      //   console.log(
+      //     `🧹 User cache cleanup: removed ${cleanedCount} expired entries. Current size: ${currentSize}`
+      //   );
+      // },
+      onError: (error: Error): void => {
         console.error(`❌ User cache cleanup error: ${error.message}`);
       },
     });
@@ -39,18 +45,47 @@ export class UserService {
     );
   }
 
-  async getUserById(id: number): Promise<User | undefined> {
+  private async simulateDatabaseCall(id: number): Promise<User> {
+    await new Promise(resolve => globalThis.setTimeout(resolve, 200));
+
+    const mockUser = getMockUserById(id);
+    if (!mockUser) {
+      throw new UserNotFoundError(id);
+    }
+
+    return mockUser;
+  }
+
+  @preventConcurrentRequests
+  async getUserById(id: number): Promise<User> {
     const userId = id.toString();
+
     const cachedUser = this.userCache.get(userId);
     if (cachedUser) {
       return cachedUser;
     }
-    const mockUser = getMockUserById(id);
-    if (mockUser) {
-      this.userCache.set(userId, mockUser);
-      return mockUser;
+
+    try {
+      const user = await this.databaseQueue.add(
+        () => this.simulateDatabaseCall(id),
+        { throwOnTimeout: true }
+      );
+
+      if (!this.userCache.has(userId)) {
+        this.userCache.set(userId, user);
+      }
+
+      return user;
+    } catch (error) {
+      // Re-throw UserNotFoundError to maintain separation of concerns
+      if (error instanceof UserNotFoundError) {
+        throw error;
+      }
+
+      // Handle unexpected errors
+      console.error(`Unexpected error while fetching user ${id}:`, error);
+      throw new Error('Failed to fetch user data');
     }
-    return undefined;
   }
 
   async createUser(userData: CreateUserRequest): Promise<User> {
@@ -66,7 +101,7 @@ export class UserService {
     return getMockUsers();
   }
 
-  getCacheMetrics() {
+  getCacheMetrics(): ReturnType<typeof this.userCache.getMetrics> {
     return this.userCache.getMetrics();
   }
 

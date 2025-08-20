@@ -1,186 +1,78 @@
-# Users Module with Cache
+# Users Module
 
-This module implements a User entity with automatic caching and background cleanup using the LRU cache system.
+This module provides user management functionality with efficient caching and concurrent request handling.
 
 ## Features
 
-- **User Management**: CRUD operations for users
-- **Automatic Caching**: LRU cache with 60-second TTL
-- **Background Cleanup**: Automatic cleanup every 2 seconds in separate thread
-- **Metrics Collection**: Cache performance monitoring
-- **Singleton Pattern**: Shared cache instance across the application
-- **Mock Data**: Pre-populated with sample users
+- **User Management**: Create, retrieve, and manage users
+- **LRU Cache**: Efficient caching with TTL and background cleanup
+- **Concurrent Request Handling**: Prevents duplicate database calls for the same user ID
+- **Queue-based Database Operations**: Manages database load with PQueue
 
-## Architecture
+## Concurrent Request Decorator
 
-```
-UserService
-    ↓
-MetricsLRUWrapper<User> (implements SizableCache + CleanupableCache)
-    ↓
-BackgroundCleanupService (runs every 2 seconds with p-queue)
-    ↓
-LRU Cache with TTL
-```
+The `@preventConcurrentRequests` decorator efficiently handles multiple simultaneous requests for the same user ID by:
 
-## API Endpoints
+- **Preventing Duplicate Calls**: If a request for a specific user ID is already in progress, subsequent requests wait for the first one to complete
+- **Promise Sharing**: All concurrent requests for the same parameters share the same promise
+- **Automatic Cleanup**: Completed requests are automatically removed from the tracking map
+- **Parameter-based Keys**: Uses method name and parameters to create unique request keys
 
-### `GET /users`
-Returns all users (from mock data).
+### Usage
 
-**Response:**
-```json
-{
-  "data": [
-    {
-      "id": 1,
-      "name": "John Doe",
-      "email": "john@example.com"
-    },
-    {
-      "id": 2,
-      "name": "Jane Smith",
-      "email": "jane@example.com"
-    },
-    {
-      "id": 3,
-      "name": "Alice Johnson",
-      "email": "alice@example.com"
-    }
-  ]
-}
-```
+```typescript
+import { preventConcurrentRequests } from './concurrent-request-decorator';
 
-### `GET /users/:id`
-Returns a specific user by ID. If not in cache, fetches from mock data and caches it.
-
-**Response:**
-```json
-{
-  "data": {
-    "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com"
+export class UserService {
+  @preventConcurrentRequests
+  async getUserById(id: number): Promise<User> {
+    // This method will only execute once per unique ID
+    // Multiple concurrent calls for the same ID will share the same promise
   }
 }
 ```
 
-### `POST /users`
-Creates a new user and adds it to the cache.
+### How It Works
 
-**Request Body:**
-```json
-{
-  "name": "Bob Wilson",
-  "email": "bob@example.com"
-}
-```
+1. **Instance-based Storage**: Each class instance has its own ongoing requests map using a WeakMap
+2. **Request Tracking**: Maintains a map of ongoing requests using method name + parameters as keys
+3. **Duplicate Detection**: Checks if a request with the same parameters is already in progress
+4. **Promise Sharing**: Returns the existing promise if a duplicate request is detected
+5. **Automatic Cleanup**: Completed requests are automatically removed from the tracking map
+6. **Memory Safety**: Uses WeakMap to prevent memory leaks when instances are garbage collected
 
-**Response:**
-```json
-{
-  "data": {
-    "id": 4,
-    "name": "Bob Wilson",
-    "email": "bob@example.com"
-  }
-}
-```
+### Benefits
 
-### `GET /users/cache/metrics`
-Returns cache performance metrics.
+- **Eliminates Database Duplicates**: Prevents multiple database calls for the same user ID
+- **Improves Performance**: Reduces database load and response times
+- **Maintains Consistency**: All concurrent requests receive the same result
+- **Clean Architecture**: Keeps concurrent request logic separate from business logic
 
-**Response:**
-```json
-{
-  "data": {
-    "hits": 5,
-    "misses": 1,
-    "hitRate": 0.8333333333333334,
-    "totalRequests": 6,
-    "currentSize": 4
-  }
-}
-```
+## Cache Management
 
-## Usage
+The user cache uses an LRU (Least Recently Used) strategy with:
+- Configurable TTL (Time To Live)
+- Background cleanup of expired entries
+- Metrics collection for monitoring
+- Automatic eviction when capacity is reached
 
-### Server Integration
+## Database Operations
 
-The users module is automatically integrated into the Express server:
-
-```typescript
-import { userRoutes } from './users';
-
-// User routes are automatically mounted at /users
-app.use('/users', userRoutes);
-```
-
-### Cache Initialization
-
-The cache is automatically initialized with mock data on the first user request:
-
-```typescript
-import { initializeUserCache } from './users';
-
-// Initialize cache with mock data
-await initializeUserCache();
-```
-
-### Direct Service Usage
-
-```typescript
-import { getUserService } from './users';
-
-const userService = getUserService();
-
-// Get user by ID
-const user = await userService.getUserById(1);
-
-// Create new user
-const newUser = await userService.createUser({
-  name: "New User",
-  email: "new@example.com"
-});
-
-// Get cache metrics
-const metrics = userService.getCacheMetrics();
-```
-
-## Cache Configuration
-
-- **TTL**: 60 seconds
-- **Cleanup Interval**: Every 2 seconds
-- **Background Processing**: Main thread with p-queue for sequential tasks
-- **Shared Memory**: Singleton instance accessible across the application
-
-## Mock Data
-
-The module comes with pre-populated mock users:
-
-1. **John Doe** (john@example.com)
-2. **Jane Smith** (jane@example.com)  
-3. **Alice Johnson** (alice@example.com)
+Database operations are managed through a queue system to:
+- Prevent overwhelming the database
+- Handle timeouts gracefully
+- Maintain consistent error handling
+- Support concurrent operations for different user IDs
 
 ## Testing
 
-Run the tests to verify functionality:
+Comprehensive tests cover:
+- Concurrent request handling
+- Cache behavior
+- Error scenarios
+- Performance characteristics
 
+Run tests with:
 ```bash
-pnpm test
+npm test
 ```
-
-## Demo
-
-Run the demo script to see the cache in action:
-
-```bash
-npx tsx src/users/demo.ts
-```
-
-## Performance
-
-- **Cache Hits**: O(1) lookup time
-- **Cache Misses**: Fetches from mock data and caches
-- **Background Cleanup**: No impact on user requests
-- **Memory Management**: Automatic expiration and cleanup
