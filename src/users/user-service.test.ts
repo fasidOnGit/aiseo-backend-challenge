@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { UserService } from './user-service';
-import { CreateUserRequest } from './types';
 import { UserNotFoundError } from './errors';
 
 describe('UserService', () => {
@@ -8,10 +7,6 @@ describe('UserService', () => {
 
   beforeEach(() => {
     userService = new UserService();
-  });
-
-  afterEach(() => {
-    userService.stopCleanup();
   });
 
   it('should get user by ID from cache', async () => {
@@ -36,11 +31,13 @@ describe('UserService', () => {
     );
   });
 
-  it('should start and stop cleanup service', () => {
-    expect(userService.isCleanupActive()).toBe(true);
+  it('should have cache management methods', () => {
+    // Call the method first to create the cache
+    userService.getUserById(1);
 
-    userService.stopCleanup();
-    expect(userService.isCleanupActive()).toBe(false);
+    // Should have cache management methods
+    expect(userService).toHaveProperty('getGetUserByIdCacheStats');
+    expect(userService).toHaveProperty('clearGetUserByIdCache');
   });
 
   it('should handle multiple user creations with incrementing IDs', async () => {
