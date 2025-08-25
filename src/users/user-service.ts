@@ -1,7 +1,6 @@
 import { User, CreateUserRequest } from './types';
 import { UserRepository } from './user-repository';
 import { preventDistributedConcurrentRequests } from './distributed-concurrent-request-decorator';
-import { Cachable } from './cachable.decorator';
 
 export class UserService {
   private userRepository: UserRepository;
@@ -16,7 +15,6 @@ export class UserService {
    * Uses 'users' namespace to avoid collisions with other services
    */
   @preventDistributedConcurrentRequests({ namespace: 'users' })
-  @Cachable({ ttl: 60 * 1000 }) // 1 minute cache
   async getUserById(id: number): Promise<User> {
     return this.userRepository.getUserById(id);
   }

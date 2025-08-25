@@ -1,6 +1,7 @@
 import { User, CreateUserRequest } from './types';
 import { getMockUsers } from './mock-data';
 import { UserNotFoundError } from './errors';
+import { Cachable } from './cachable.decorator';
 
 export class UserRepository {
   private users: Map<number, User>;
@@ -20,11 +21,10 @@ export class UserRepository {
       mockUsers.length > 0 ? Math.max(...mockUsers.map(u => u.id)) + 1 : 1;
   }
 
+  @Cachable({ ttl: 60 * 1000 }) // 1 minute cache
   async getUserById(id: number): Promise<User> {
-    // Simulate database delay
     await new Promise(resolve => globalThis.setTimeout(resolve, 100));
 
-    // Fetch from repository
     const user = this.users.get(id);
     if (!user) {
       throw new UserNotFoundError(id);
