@@ -19,7 +19,7 @@ userRouter.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
     const userService = getUserService();
     const user = await userService.getUserById(userId);
 
-    res.json({ data: user });
+    return res.json({ data: user });
   } catch (error) {
     if (error instanceof UserNotFoundError) {
       return res.status(error.statusCode).json({
@@ -29,7 +29,7 @@ userRouter.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
     }
 
     console.error('Error getting user:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -48,7 +48,7 @@ userRouter.post('/', async (req: Request, res: Response) => {
     const userService = getUserService();
     const newUser = await userService.createUser(userData);
 
-    res.status(201).json({ data: newUser });
+    return res.status(201).json({ data: newUser });
   } catch (error) {
     if (error instanceof InvalidUserDataError) {
       return res.status(error.statusCode).json({
@@ -58,7 +58,7 @@ userRouter.post('/', async (req: Request, res: Response) => {
     }
 
     console.error('Error creating user:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 

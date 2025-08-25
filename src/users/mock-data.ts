@@ -9,7 +9,3 @@ export const mockUsers: Record<number, User> = {
 export function getMockUsers(): User[] {
   return Object.values(mockUsers);
 }
-
-export function getMockUserById(id: number): User | undefined {
-  return mockUsers[id];
-}

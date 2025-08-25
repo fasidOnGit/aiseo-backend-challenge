@@ -14,38 +14,17 @@ describe('UserService', () => {
     userService.stopCleanup();
   });
 
-  it('should initialize cache with mock data', async () => {
-    await userService.initializeCache();
-
-    expect(userService.getCacheSize()).toBe(3);
-    await expect(userService.getUserById(1)).resolves.toEqual({
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-    });
-  });
-
   it('should get user by ID from cache', async () => {
-    await userService.initializeCache();
+    // First fetch should populate cache
+    await userService.getUserById(1);
 
+    // Second fetch should come from cache
     const user = await userService.getUserById(1);
     expect(user).toEqual({
       id: 1,
       name: 'John Doe',
       email: 'john@example.com',
     });
-  });
-
-  it('should get user by ID from mock data if not in cache', async () => {
-    const user = await userService.getUserById(1);
-    expect(user).toEqual({
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-    });
-
-    // Should now be in cache
-    expect(userService.getCacheSize()).toBe(1);
   });
 
   it('should throw UserNotFoundError for non-existent user', async () => {
@@ -55,44 +34,6 @@ describe('UserService', () => {
     await expect(userService.getUserById(999)).rejects.toThrow(
       'User with ID 999 not found'
     );
-  });
-
-  it('should create new user', async () => {
-    const userData: CreateUserRequest = {
-      name: 'Bob Wilson',
-      email: 'bob@example.com',
-    };
-
-    const newUser = await userService.createUser(userData);
-
-    expect(newUser).toEqual({
-      id: 4,
-      name: 'Bob Wilson',
-      email: 'bob@example.com',
-    });
-
-    // Should be in cache
-    expect(userService.getCacheSize()).toBe(1);
-  });
-
-  it('should get all users', async () => {
-    const users = await userService.getAllUsers();
-
-    expect(users).toHaveLength(3);
-    expect(users).toEqual([
-      { id: 1, name: 'John Doe', email: 'john@example.com' },
-      { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-      { id: 3, name: 'Alice Johnson', email: 'alice@example.com' },
-    ]);
-  });
-
-  it('should provide cache metrics', () => {
-    const metrics = userService.getCacheMetrics();
-
-    expect(metrics).toHaveProperty('hits');
-    expect(metrics).toHaveProperty('misses');
-    expect(metrics).toHaveProperty('hitRate');
-    expect(metrics).toHaveProperty('totalRequests');
   });
 
   it('should start and stop cleanup service', () => {

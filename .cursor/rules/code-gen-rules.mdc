@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+rules:
+  - Do not generate README files or instructions unless explicitly requested.
+  - Do not create example usage files unless explicitly requested.
+  - Only add comments for code that is crucial to understand; avoid excessive commenting.
+---

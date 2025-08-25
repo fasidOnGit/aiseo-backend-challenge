@@ -1,7 +1,9 @@
 import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
-import { initializeUserCache, userRoutes } from './users';
+import { appInitializer } from './initializers';
+import { initializeApp } from './initializers/app-initializer';
+import { userRoutes } from './users';
 
 const app = express();
 const PORT = process.env['PORT'] || 3000;
@@ -20,13 +22,6 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Initialize user cache on server start
-try {
-  initializeUserCache();
-} catch (error) {
-  console.error('Failed to initialize user cache:', error);
-}
-
 // User routes
 app.use('/users', userRoutes);
 
@@ -43,6 +38,27 @@ app.use('*', (_req: Request, res: Response): void => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, (): void => {
-  console.log(`Server is running on port ${PORT}`);
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  await appInitializer.cleanup();
+  process.exit(0);
 });
+
+process.on('SIGINT', async () => {
+  console.log('🛑 SIGINT received, shutting down gracefully...');
+  await appInitializer.cleanup();
+  process.exit(0);
+});
+
+// Start the application
+initializeApp()
+  .then(() => {
+    app.listen(PORT, (): void => {
+      console.log(`🚀 Server is running on port ${PORT}`);
+    });
+  })
+  .catch(error => {
+    console.error('❌ Failed to start application:', error);
+    process.exit(1);
+  });

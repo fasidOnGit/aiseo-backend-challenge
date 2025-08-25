@@ -9,16 +9,4 @@ export function getUserService(): UserService {
   return userServiceInstance;
 }
 
-let isInitialized = false;
-
-export function initializeUserCache(): void {
-  if (isInitialized) {
-    return;
-  }
-
-  const userService = getUserService();
-  isInitialized = true;
-  userService.initializeCache();
-}
-
 export type { UserService } from './user-service';
