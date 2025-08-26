@@ -1,12 +1,4 @@
-import { Job } from 'bullmq';
 import { BullMQInitializer } from '../initializers/bullmq-initializer';
-
-export interface QueueProcessorOptions {
-  namespace: string;
-  queueName: string;
-  // eslint-disable-next-line no-unused-vars
-  processor: (job: Job) => Promise<unknown>;
-}
 
 export interface QueueOperationOptions {
   namespace: string;
@@ -19,32 +11,6 @@ export interface QueueOperationOptions {
  * Utility class for handling queue-based operations with uniqueness enforcement
  */
 export class QueueProcessorUtility {
-  private static instance: QueueProcessorUtility;
-  private queueConfigs: QueueProcessorOptions[] = [];
-
-  private constructor() {}
-
-  static getInstance(): QueueProcessorUtility {
-    if (!QueueProcessorUtility.instance) {
-      QueueProcessorUtility.instance = new QueueProcessorUtility();
-    }
-    return QueueProcessorUtility.instance;
-  }
-
-  /**
-   * Register a queue configuration for initialization
-   */
-  registerQueue(config: QueueProcessorOptions): void {
-    this.queueConfigs.push(config);
-  }
-
-  /**
-   * Get all registered queue configurations
-   */
-  getQueueConfigs(): QueueProcessorOptions[] {
-    return this.queueConfigs;
-  }
-
   /**
    * Execute a job with uniqueness enforcement
    * Uses BullMQ's jobId to ensure each unique request gets a dedicated job
@@ -77,6 +43,10 @@ export class QueueProcessorUtility {
       // Wait for completion - this returns the actual result or throws on error
       return await job.waitUntilFinished(queueEvents);
     } catch (error) {
+      // Preserve the original error if it's a known error type
+      if (error instanceof Error && error.name !== 'Error') {
+        throw error;
+      }
       throw new Error(`Queue execution failed for ${fullQueueName}: ${error}`);
     }
   }

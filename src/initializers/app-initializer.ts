@@ -2,6 +2,7 @@ import { appInitializer } from './index';
 import { RedisInitializer } from './redis-initializer';
 import { BullMQInitializer } from './bullmq-initializer';
 import { initializeUserQueues } from '../users/user-queue-initializer';
+import { initializeBackgroundCleanupQueues } from '../cache/background-cleanup/background-cleanup-queue-initializer';
 
 /**
  * Initialize all application components
@@ -20,6 +21,9 @@ export async function initializeApp(): Promise<void> {
 
     // Register user-specific queues for post-initialization setup
     initializeUserQueues(bullmqInitializer);
+
+    // Register background cleanup queues for post-initialization setup
+    initializeBackgroundCleanupQueues(bullmqInitializer);
 
     // Initialize all components
     await appInitializer.initialize();

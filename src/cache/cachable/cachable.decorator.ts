@@ -1,6 +1,6 @@
-import { createMetricsLRUCache } from '../cache';
+import { createMetricsLRUCache } from '../metrics-factory';
 
-interface CachableOptions {
+export interface CachableOptions {
   ttl?: number;
   keyPrefix?: string;
 }

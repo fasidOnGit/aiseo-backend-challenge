@@ -9,5 +9,7 @@ export type { CacheMetrics, CacheMetricsProvider } from './metrics';
 export { MetricsLRUWrapper, WrappedCacheMetrics } from './metrics-wrapper';
 
 // Background cleanup functionality
-export type { CleanupOptions, CleanupableCache } from './background-cleanup';
-export { BackgroundCleanupService } from './background-cleanup';
+export * from './background-cleanup';
+
+// Cachable decorator functionality
+export * from './cachable';

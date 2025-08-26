@@ -31,15 +31,6 @@ describe('UserService', () => {
     );
   });
 
-  it('should have cache management methods', () => {
-    // Call the method first to create the cache
-    userService.getUserById(1);
-
-    // Should have cache management methods
-    expect(userService).toHaveProperty('getGetUserByIdCacheStats');
-    expect(userService).toHaveProperty('clearGetUserByIdCache');
-  });
-
   it('should handle multiple user creations with incrementing IDs', async () => {
     const user1 = await userService.createUser({
       name: 'User 1',

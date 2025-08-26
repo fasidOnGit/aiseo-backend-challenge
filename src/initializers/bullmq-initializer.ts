@@ -18,18 +18,10 @@ export class BullMQInitializer implements Initializer {
   private redisClient: Redis;
   private queues = new Map<string, Queue>();
   private workers = new Map<string, Worker>();
-  private queueConfigs: QueueConfig[] = [];
   private postInitQueueConfigs: QueueConfig[] = [];
 
   constructor(redisClient: Redis) {
     this.redisClient = redisClient;
-  }
-
-  /**
-   * Register a queue configuration
-   */
-  registerQueue(config: QueueConfig): void {
-    this.queueConfigs.push(config);
   }
 
   /**
@@ -42,23 +34,9 @@ export class BullMQInitializer implements Initializer {
   async initialize(): Promise<void> {
     console.log('  📋 Setting up BullMQ queues and workers...');
 
-    for (const config of this.queueConfigs) {
-      await this.setupQueue(config);
-    }
-
     // Assign to global variables
     globalQueues.clear();
     globalQueueEvents.clear();
-
-    for (const [name, queue] of this.queues) {
-      globalQueues.set(name, queue);
-
-      // Create QueueEvents for each queue
-      const queueEvents = new QueueEvents(name, {
-        connection: this.redisClient,
-      });
-      globalQueueEvents.set(name, queueEvents);
-    }
 
     // Set up post-initialization queues
     console.log('  📋 Setting up post-initialization queues...');
@@ -160,21 +138,6 @@ export class BullMQInitializer implements Initializer {
     console.log(
       `    📋 Queue ${fullName} setup with concurrency ${config.concurrency || 1}`
     );
-  }
-
-  /**
-   * Get a queue by name
-   */
-  getQueue(name: string, namespace?: string): Queue | undefined {
-    const fullName = namespace ? `${namespace}_${name}` : name;
-    return this.queues.get(fullName);
-  }
-
-  /**
-   * Get all queues
-   */
-  getQueues(): Map<string, Queue> {
-    return this.queues;
   }
 
   /**

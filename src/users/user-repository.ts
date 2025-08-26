@@ -1,7 +1,7 @@
 import { User, CreateUserRequest } from './types';
 import { getMockUsers } from './mock-data';
 import { UserNotFoundError } from './errors';
-import { Cachable } from './cachable.decorator';
+import { Cachable } from '../cache/cachable';
 
 export class UserRepository {
   private users: Map<number, User>;

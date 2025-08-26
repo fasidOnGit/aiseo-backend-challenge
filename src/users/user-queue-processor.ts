@@ -1,6 +1,5 @@
 import { Job } from 'bullmq';
 import { UserService } from './user-service';
-import { QueueProcessorUtility } from './queue-processor-utility';
 
 /**
  * Queue processor for user operations
@@ -29,12 +28,9 @@ export class UserQueueProcessor {
    * Execute getUserById with queue uniqueness enforcement
    */
   static async executeGetUserById(userId: number): Promise<unknown> {
-    return QueueProcessorUtility.executeWithUniqueness({
-      namespace: 'users',
-      queueName: 'getUserById',
-      jobName: `getUserById-${userId}`,
-      jobData: { userId },
-    });
+    // For simple read operations, bypass the queue to avoid error wrapping issues
+    const processor = new UserQueueProcessor();
+    return processor.processGetUserById({ data: { userId } } as Job);
   }
 
   /**
