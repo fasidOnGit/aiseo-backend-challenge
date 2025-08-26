@@ -29,11 +29,6 @@ app.get('/health', (_req: Request, res: Response): void => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use((err: Error, _req: Request, res: Response): void => {
-  console.error('Error:', err.message);
-  res.status(500).json({ error: 'Internal server error' });
-});
-
 app.use('*', (_req: Request, res: Response): void => {
   res.status(404).json({ error: 'Route not found' });
 });

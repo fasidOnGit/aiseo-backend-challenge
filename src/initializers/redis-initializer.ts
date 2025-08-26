@@ -17,6 +17,7 @@ export class RedisInitializer implements Initializer {
       host: process.env['REDIS_HOST'] || 'localhost',
       port: parseInt(process.env['REDIS_PORT'] || '6379'),
       db: parseInt(process.env['REDIS_DB'] || '0'),
+      maxRetriesPerRequest: null,
     };
 
     if (process.env['REDIS_PASSWORD']) {
@@ -41,6 +42,8 @@ export class RedisInitializer implements Initializer {
 
   async cleanup(): Promise<void> {
     try {
+      await this.redisClient.flushdb();
+      console.log('  🗑️  Redis database flushed');
       await this.redisClient.disconnect();
       console.log('  🔗 Redis connection closed');
 

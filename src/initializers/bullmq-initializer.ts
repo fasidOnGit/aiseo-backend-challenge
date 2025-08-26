@@ -13,7 +13,6 @@ export interface QueueConfig {
 // Global queue exports - assigned during initialization
 export const globalQueues: Map<string, Queue> = new Map();
 export const globalQueueEvents: Map<string, QueueEvents> = new Map();
-
 export class BullMQInitializer implements Initializer {
   name = 'BullMQ';
   private redisClient: Redis;
@@ -70,7 +69,9 @@ export class BullMQInitializer implements Initializer {
     // Close all queues
     for (const [name, queue] of this.queues) {
       try {
+        await queue.obliterate();
         await queue.close();
+
         console.log(`    ✅ Queue ${name} closed`);
       } catch (error) {
         console.error(`    ❌ Error closing queue ${name}:`, error);
@@ -95,7 +96,7 @@ export class BullMQInitializer implements Initializer {
 
   private async setupQueue(config: QueueConfig): Promise<void> {
     const fullName = config.namespace
-      ? `${config.namespace}:${config.name}`
+      ? `${config.namespace}-${config.name}`
       : config.name;
 
     // Create queue
@@ -110,7 +111,7 @@ export class BullMQInitializer implements Initializer {
     // Create worker
     const worker = new Worker(fullName, config.processor, {
       connection: this.redisClient,
-      concurrency: config.concurrency || 1,
+      concurrency: config.concurrency || 5,
     });
 
     // Handle worker events
