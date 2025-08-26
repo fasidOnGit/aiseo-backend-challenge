@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { getUserService } from './user-cache-singleton';
 import { CreateUserRequest } from './types';
 import { UserNotFoundError, InvalidUserDataError } from './errors';
+import { UserQueueProcessor } from './user-queue-processor';
 
 const userRouter: Router = Router();
 
@@ -16,8 +17,8 @@ userRouter.get('/:id', async (req: Request<{ id: string }>, res: Response) => {
       });
     }
 
-    const userService = getUserService();
-    const user = await userService.getUserById(userId);
+    // Use queue processor for getUserById with uniqueness enforcement
+    const user = await UserQueueProcessor.executeGetUserById(userId);
 
     return res.json({ data: user });
   } catch (error) {

@@ -1,6 +1,5 @@
 import { User, CreateUserRequest } from './types';
 import { UserRepository } from './user-repository';
-import { preventDistributedConcurrentRequests } from './distributed-concurrent-request-decorator';
 
 export class UserService {
   private userRepository: UserRepository;
@@ -11,10 +10,8 @@ export class UserService {
   }
 
   /**
-   * Get user by ID with distributed concurrency control and automatic caching
-   * Uses 'users' namespace to avoid collisions with other services
+   * Get user by ID
    */
-  @preventDistributedConcurrentRequests({ namespace: 'users' })
   async getUserById(id: number): Promise<User> {
     return this.userRepository.getUserById(id);
   }

@@ -19,6 +19,7 @@ export class BullMQInitializer implements Initializer {
   private queues = new Map<string, Queue>();
   private workers = new Map<string, Worker>();
   private queueConfigs: QueueConfig[] = [];
+  private postInitQueueConfigs: QueueConfig[] = [];
 
   constructor(redisClient: Redis) {
     this.redisClient = redisClient;
@@ -29,6 +30,13 @@ export class BullMQInitializer implements Initializer {
    */
   registerQueue(config: QueueConfig): void {
     this.queueConfigs.push(config);
+  }
+
+  /**
+   * Register a queue configuration to be set up after initialization
+   */
+  registerPostInitQueue(config: QueueConfig): void {
+    this.postInitQueueConfigs.push(config);
   }
 
   async initialize(): Promise<void> {
@@ -50,6 +58,27 @@ export class BullMQInitializer implements Initializer {
         connection: this.redisClient,
       });
       globalQueueEvents.set(name, queueEvents);
+    }
+
+    // Set up post-initialization queues
+    console.log('  📋 Setting up post-initialization queues...');
+    for (const config of this.postInitQueueConfigs) {
+      await this.setupQueue(config);
+
+      // Update global exports for new queues
+      const fullName = config.namespace
+        ? `${config.namespace}_${config.name}`
+        : config.name;
+
+      const queue = this.queues.get(fullName);
+      if (queue) {
+        globalQueues.set(fullName, queue);
+
+        const queueEvents = new QueueEvents(fullName, {
+          connection: this.redisClient,
+        });
+        globalQueueEvents.set(fullName, queueEvents);
+      }
     }
   }
 
@@ -96,7 +125,7 @@ export class BullMQInitializer implements Initializer {
 
   private async setupQueue(config: QueueConfig): Promise<void> {
     const fullName = config.namespace
-      ? `${config.namespace}-${config.name}`
+      ? `${config.namespace}_${config.name}`
       : config.name;
 
     // Create queue
@@ -105,6 +134,7 @@ export class BullMQInitializer implements Initializer {
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
+        attempts: 1,
       },
     });
 
@@ -136,7 +166,7 @@ export class BullMQInitializer implements Initializer {
    * Get a queue by name
    */
   getQueue(name: string, namespace?: string): Queue | undefined {
-    const fullName = namespace ? `${namespace}:${name}` : name;
+    const fullName = namespace ? `${namespace}_${name}` : name;
     return this.queues.get(fullName);
   }
 
@@ -151,7 +181,7 @@ export class BullMQInitializer implements Initializer {
    * Get a queue from global exports
    */
   static getGlobalQueue(name: string, namespace?: string): Queue | undefined {
-    const fullName = namespace ? `${namespace}:${name}` : name;
+    const fullName = namespace ? `${namespace}_${name}` : name;
     return globalQueues.get(fullName);
   }
 
@@ -162,7 +192,7 @@ export class BullMQInitializer implements Initializer {
     name: string,
     namespace?: string
   ): QueueEvents | undefined {
-    const fullName = namespace ? `${namespace}:${name}` : name;
+    const fullName = namespace ? `${namespace}_${name}` : name;
     return globalQueueEvents.get(fullName);
   }
 }

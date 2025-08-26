@@ -1,6 +1,7 @@
 import { appInitializer } from './index';
 import { RedisInitializer } from './redis-initializer';
 import { BullMQInitializer } from './bullmq-initializer';
+import { initializeUserQueues } from '../users/user-queue-initializer';
 
 /**
  * Initialize all application components
@@ -13,20 +14,12 @@ export async function initializeApp(): Promise<void> {
       redisInitializer.getClient()
     );
 
-    // Register BullMQ queues for user service
-    bullmqInitializer.registerQueue({
-      name: 'getUserById',
-      namespace: 'users',
-      concurrency: 1,
-      processor: async job => {
-        // This will be processed by the decorator
-        return job.data;
-      },
-    });
-
-    // Register initializers
+    // Register initializers first
     appInitializer.register(redisInitializer);
     appInitializer.register(bullmqInitializer);
+
+    // Register user-specific queues for post-initialization setup
+    initializeUserQueues(bullmqInitializer);
 
     // Initialize all components
     await appInitializer.initialize();
