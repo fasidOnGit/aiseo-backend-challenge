@@ -7,7 +7,10 @@ import { RateLimitMiddleware } from './rate-limit-middleware';
 vi.mock('rate-limiter-flexible', () => ({
   RateLimiterRedis: vi.fn(),
   RateLimiterRes: class MockRateLimiterRes {
-    constructor(public msBeforeNext: number = 0) {}
+    constructor(
+      public msBeforeNext: number = 0,
+      public remainingPoints: number = 0
+    ) {}
   },
 }));
 
@@ -193,10 +196,10 @@ describe('RateLimitMiddleware', () => {
     });
 
     it('should block request when minute limit is exceeded', async () => {
-      const minuteRes = new RateLimiterRes(30000);
+      const minuteRes = new RateLimiterRes(30000, 0);
       const burstRes = { remainingPoints: 4, msBeforeNext: 8000 };
 
-      mockMinuteLimiter.consume.mockResolvedValue(minuteRes);
+      mockMinuteLimiter.consume.mockRejectedValue(minuteRes);
       mockBurstLimiter.consume.mockResolvedValue(burstRes);
 
       await middleware.middleware(
@@ -216,10 +219,10 @@ describe('RateLimitMiddleware', () => {
 
     it('should block request when burst limit is exceeded', async () => {
       const minuteRes = { remainingPoints: 9, msBeforeNext: 45000 };
-      const burstRes = new RateLimiterRes(5000);
+      const burstRes = new RateLimiterRes(5000, 0);
 
       mockMinuteLimiter.consume.mockResolvedValue(minuteRes);
-      mockBurstLimiter.consume.mockResolvedValue(burstRes);
+      mockBurstLimiter.consume.mockRejectedValue(burstRes);
 
       await middleware.middleware(
         mockReq as Request,
@@ -237,10 +240,10 @@ describe('RateLimitMiddleware', () => {
     });
 
     it('should set Retry-After header when rate limit is exceeded', async () => {
-      const minuteRes = new RateLimiterRes(30000);
+      const minuteRes = new RateLimiterRes(30000, 0);
       const burstRes = { remainingPoints: 4, msBeforeNext: 8000 };
 
-      mockMinuteLimiter.consume.mockResolvedValue(minuteRes);
+      mockMinuteLimiter.consume.mockRejectedValue(minuteRes);
       mockBurstLimiter.consume.mockResolvedValue(burstRes);
 
       await middleware.middleware(

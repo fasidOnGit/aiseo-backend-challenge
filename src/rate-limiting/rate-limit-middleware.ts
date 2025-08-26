@@ -121,48 +121,27 @@ export class RateLimitMiddleware {
     try {
       // Consume from both rate limiters simultaneously
       const [burstRes, minuteRes] = await Promise.all([
-        this.burstLimiter
-          .consume(clientKey)
-          .catch((err: RateLimiterRes) => err),
-        this.minuteLimiter
-          .consume(clientKey)
-          .catch((err: RateLimiterRes) => err),
+        this.burstLimiter.consume(clientKey),
+        this.minuteLimiter.consume(clientKey),
       ]);
-
-      // Check if either rate limit is exceeded
-      // The consume() method returns an object with remainingPoints
-      // If remainingPoints is 0 or negative, the limit is exceeded
-      if (
-        burstRes &&
-        typeof burstRes === 'object' &&
-        'remainingPoints' in burstRes &&
-        burstRes.remainingPoints <= 0
-      ) {
-        return this.formatTooManyResponse(
-          res,
-          'burst',
-          burstRes as RateLimiterRes
-        );
-      }
-
-      if (
-        minuteRes &&
-        typeof minuteRes === 'object' &&
-        'remainingPoints' in minuteRes &&
-        minuteRes.remainingPoints <= 0
-      ) {
-        return this.formatTooManyResponse(
-          res,
-          'minute',
-          minuteRes as RateLimiterRes
-        );
-      }
 
       // Both limits are satisfied, set headers and continue
       this.setRateLimitHeaders(res, minuteRes, burstRes);
       next();
     } catch (error) {
-      // Fail-open approach: if Redis is unavailable, allow the request
+      // Check if the error is a RateLimiterRes (rate limit exceeded)
+      if (error && typeof error === 'object' && 'remainingPoints' in error) {
+        const rateLimitError = error as RateLimiterRes;
+
+        // Determine which limit was exceeded based on the error source
+        // Since we can't easily determine which limiter threw the error,
+        // we'll use the msBeforeNext to determine the label
+        // Minute limit has longer duration (60s) vs burst limit (10s)
+        const label = rateLimitError.msBeforeNext > 10000 ? 'minute' : 'burst';
+        return this.formatTooManyResponse(res, label, rateLimitError);
+      }
+
+      // Fail-open approach: if Redis is unavailable or other errors, allow the request
       // This prevents the rate limiter from taking down the service
       console.warn('Rate limiting failed, allowing request:', error);
       next();

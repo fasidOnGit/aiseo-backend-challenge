@@ -1,116 +1,128 @@
-# Express.js TypeScript Server
+# Express.js TypeScript Server with Advanced Caching & Rate Limiting
 
-A minimal Express.js server built with TypeScript in strict mode, using pnpm as the package manager.
+A high-performance Express.js server built with TypeScript featuring sophisticated caching strategies, distributed rate limiting, and asynchronous job processing.
 
-## Features
+## What This Repository Is About
 
-- TypeScript with strict mode enabled
-- Express.js server with basic error handling
-- ESLint configuration with TypeScript support
-- Prettier for code formatting
-- **Security middlewares**: Helmet for security headers
-- **CORS support**: Configurable cross-origin resource sharing
-- **Body parsing**: JSON and URL-encoded body parsing with size limits
-- Health check endpoint
-- Basic API endpoints (GET and POST)
+This is a production-ready Express.js server that demonstrates advanced architectural patterns including:
+- **LRU Cache with TTL**: Memory-efficient caching with automatic expiration
+- **Distributed Rate Limiting**: Redis-backed rate limiting with burst traffic handling
+- **Asynchronous Job Processing**: BullMQ-powered background job processing
+- **Background Cleanup**: Automatic cache maintenance and memory optimization
 
 ## Prerequisites
 
 - Node.js (v18 or higher)
 - pnpm
+- Docker & Docker Compose (for Redis)
 
-## Installation
+## Quick Start
 
-1. Install dependencies:
+1. **Start Redis:**
+   ```bash
+   docker-compose up -d
+   ```
+
+2. **Install dependencies:**
    ```bash
    pnpm install
    ```
 
-## Development
+3. **Run the application:**
+   ```bash
+   # Development with hot reload
+   pnpm dev
+   
+   # Production
+   pnpm build && pnpm start
+   ```
 
-- **Start development server with hot reload:**
-  ```bash
-  pnpm dev
-  ```
+## Testing the API
 
-- **Build the project:**
-  ```bash
-  pnpm build
-  ```
+1. **Run tests:**
+   ```bash
+   pnpm test
+   pnpm test:watch
+   ```
 
-- **Start production server:**
-  ```bash
-  pnpm start
-  ```
+2. **Test endpoints:**
+   ```bash
+   # Cache status
+   curl http://localhost:3000/cache-status
+   
+   # User operations
+   curl http://localhost:3000/api/users/1
+   ```
 
-## Code Quality
+## Implementation Details
 
-- **Lint code:**
-  ```bash
-  pnpm lint
-  ```
+### Caching Strategy
 
-- **Fix linting issues:**
-  ```bash
-  pnpm lint:fix
-  ```
+**LRU Cache with TTL**: Implements a Least Recently Used cache with configurable time-to-live (TTL) values. Features include:
+- Automatic expiration of stale entries
+- Background cleanup processes
+- Memory-efficient doubly-linked list implementation
+- Cache metrics and monitoring endpoints
 
-- **Format code:**
-  ```bash
-  pnpm format
-  ```
+**Key Components:**
+- `LRUCache`: Core caching logic with TTL support
+- `CacheRegistry`: Centralized cache management and metrics
+- `BackgroundCleanup`: Automated cleanup of expired entries
 
-- **Type checking:**
-  ```bash
-  pnpm type-check
-  ```
+### Rate Limiting Implementation
 
-## Available Endpoints
+**Two-Tier Rate Limiting**: Implements sophisticated rate limiting using Redis:
+- **Minute Limit**: Configurable requests per minute (default: 10/min)
+- **Burst Limit**: Short-window burst protection (default: 5/10s)
+- **Distributed**: Works across multiple server instances
+- **Configurable**: Customizable limits, durations, and block periods
 
-- `GET /health` - Health check endpoint
-- `GET /api/hello` - Basic API endpoint
-- `POST /api/test` - Test endpoint for body parsing
+**Features:**
+- IP-based client identification
+- Retry-After headers
+- Rate limit headers for monitoring
+- Graceful degradation with configurable block durations
 
-## Middlewares Implemented
+### Asynchronous Processing
 
-### Security
-- **Helmet**: Sets various HTTP headers for security (XSS protection, content security policy, etc.)
+**BullMQ Integration**: Handles background job processing with:
+- **Queue Management**: Dedicated queues for different operations
+- **Job Uniqueness**: Prevents duplicate job execution
+- **Error Handling**: Robust error handling and retry mechanisms
+- **Scalability**: Horizontal scaling across multiple workers
 
-### CORS
-- **CORS**: Configurable cross-origin resource sharing
-  - Default origin: `*` (configurable via `CORS_ORIGIN` environment variable)
-  - Supported methods: GET, POST, PUT, DELETE, PATCH, OPTIONS
-  - Allowed headers: Content-Type, Authorization
-  - Credentials: enabled
+**Use Cases:**
+- User data processing
+- Cache warming operations
+- Background maintenance tasks
 
-### Body Parsing
-- **JSON parsing**: With 10MB size limit
-- **URL-encoded parsing**: Extended mode with 10MB size limit
+## API Endpoints
+
+- `GET /cache-status` - Cache statistics and metrics
+- `DELETE /cache-status` - Reset cache metrics
+- `GET /api/users/:id` - User retrieval with caching
+- `GET /health` - Health check
 
 ## Environment Variables
 
 - `PORT` - Server port (default: 3000)
-- `CORS_ORIGIN` - CORS origin (default: *)
+- `REDIS_URL` - Redis connection string (default: redis://localhost:6379)
 
 ## Project Structure
 
 ```
-├── src/
-│   └── index.ts          # Main server file
-├── dist/                 # Build output (generated)
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-├── eslint.config.js      # ESLint configuration (flat config)
-├── .prettierrc           # Prettier configuration
-└── README.md             # This file
+src/
+├── cache/           # LRU cache implementation
+├── rate-limiting/   # Rate limiting middleware
+├── users/          # User management with queues
+└── initializers/   # Service initialization
 ```
 
-## Scripts
+## Available Scripts
 
-- `dev` - Start development server with hot reload
-- `build` - Build TypeScript to JavaScript
-- `start` - Start production server
-- `lint` - Run ESLint
-- `lint:fix` - Fix ESLint issues automatically
-- `format` - Format code with Prettier
-- `type-check` - Run TypeScript type checking
+- `pnpm dev` - Development server with hot reload
+- `pnpm build` - Build TypeScript
+- `pnpm start` - Production server
+- `pnpm test` - Run tests
+- `pnpm lint` - Code linting
+- `pnpm format` - Code formatting
