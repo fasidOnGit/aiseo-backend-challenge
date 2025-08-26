@@ -1,15 +1,24 @@
+// Core cache components
 export { createLRUCacheProvider } from './lru-cache';
-export type { LRUCacheOptions, LRUProvider, SizableCache } from './types';
-export { Node } from './node';
-export { DoublyLinkedList } from './doubly-linked-list';
-
-// Metrics functionality
 export { createMetricsLRUCache } from './metrics-factory';
-export type { CacheMetrics, CacheMetricsProvider } from './metrics';
-export { MetricsLRUWrapper, WrappedCacheMetrics } from './metrics-wrapper';
+export { MetricsLRUWrapper } from './metrics-wrapper';
+export { CacheRegistry } from './cache-registry';
 
-// Background cleanup functionality
-export * from './background-cleanup';
+// Types
+export type {
+  LRUCacheOptions,
+  LRUProvider,
+  SizableCache,
+  NamedCache,
+  WrappedCacheMetrics,
+  CacheRegistryStats,
+} from './types';
 
-// Cachable decorator functionality
-export * from './cachable';
+// Decorators
+export { Cachable } from './cachable';
+
+// Routes
+export { cacheRoutes } from './cache-routes';
+
+// Background cleanup
+export { BackgroundCleanupScheduler } from './background-cleanup';

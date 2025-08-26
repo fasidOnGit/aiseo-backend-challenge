@@ -4,6 +4,7 @@ import cors from 'cors';
 import { appInitializer } from './initializers';
 import { initializeApp } from './initializers/app-initializer';
 import { userRoutes } from './users';
+import { cacheRoutes } from './cache';
 import { globalRateLimitMiddleware } from './rate-limiting/rate-limiter-initializer';
 
 const app = express();
@@ -35,6 +36,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // User routes
 app.use('/users', userRoutes);
+
+// Cache routes
+app.use('/cache', cacheRoutes);
 
 app.get('/health', (_req: Request, res: Response): void => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });

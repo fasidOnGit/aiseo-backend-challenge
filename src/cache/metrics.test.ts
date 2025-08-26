@@ -8,6 +8,7 @@ describe('Cache Metrics', () => {
   beforeEach(() => {
     metricsCache = createMetricsLRUCache<string>({
       ttl: 5000,
+      name: 'test-metrics-cache',
     });
   });
 

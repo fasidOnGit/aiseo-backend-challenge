@@ -11,10 +11,6 @@ export interface CachableOptions {
  * Cache key format: ClassName#methodName:serializedArgs
  */
 export function Cachable(options: CachableOptions = {}) {
-  const cache = createMetricsLRUCache({
-    ttl: options.ttl || 60 * 1000, // Default 1 minute
-  });
-
   return function (
     target: object,
     propertyKey: string,
@@ -24,8 +20,17 @@ export function Cachable(options: CachableOptions = {}) {
     const className = target.constructor.name;
     const methodName = propertyKey;
 
+    // Generate unique cache name for this method
+    const cacheName = `${className}#${methodName}`;
+    
+    // Create a named cache instance for this method
+    const cache = createMetricsLRUCache({
+      ttl: options.ttl || 60 * 1000, // Default 1 minute
+      name: cacheName,
+    });
+
     // Generate cache key prefix
-    const keyPrefix = options.keyPrefix || `${className}#${methodName}`;
+    const keyPrefix = options.keyPrefix || cacheName;
 
     descriptor.value = async function (this: never, ...args: unknown[]) {
       const argsKey = args.length > 0 ? JSON.stringify(args) : 'no-args';
